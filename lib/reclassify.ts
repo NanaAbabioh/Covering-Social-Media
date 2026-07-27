@@ -14,22 +14,59 @@ export type ReclassifySummary = {
   errors: string[];
 };
 
+type Row = {
+  id: string;
+  title: string | null;
+  description: string | null;
+  score: number | null;
+  score_signals: unknown;
+};
+
+/** Fetch every undecided video (status queued/suppressed/maybe), paginating past
+ *  PostgREST's 1000-row default so nothing is left with a stale classification. */
+async function fetchUndecided(): Promise<Row[]> {
+  const pageSize = 1000;
+  const rows: Row[] = [];
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase
+      .from("videos")
+      .select("id, title, description, score, score_signals")
+      .in("status", ["queued", "suppressed", "maybe"])
+      .range(from, from + pageSize - 1);
+    if (error) throw new Error(error.message);
+    const batch = (data ?? []) as Row[];
+    rows.push(...batch);
+    if (batch.length < pageSize) break;
+  }
+  return rows;
+}
+
+async function runPool<T>(
+  items: T[],
+  limit: number,
+  worker: (item: T) => Promise<void>
+): Promise<void> {
+  let idx = 0;
+  async function next(): Promise<void> {
+    const i = idx++;
+    if (i >= items.length) return;
+    await worker(items[i]);
+    await next();
+  }
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, () => next())
+  );
+}
+
 /**
- * Classify every video that hasn't had a human decision yet (status
- * queued/suppressed/maybe — approved/rejected are left untouched), store the
- * content type on each, then rebuild the review queue from the highest-scoring
- * KEPT videos up to the queue cap.
+ * Classify every undecided video with the current (strict) classifier, store the
+ * content type, then rebuild the review queue from the highest-scoring KEPT
+ * videos up to the cap. Approved/rejected videos are never touched.
  */
 export async function reclassifyBacklog(): Promise<ReclassifySummary> {
   const config = await getConfig();
+  const videos = await fetchUndecided();
 
-  const { data: rows, error } = await supabase
-    .from("videos")
-    .select("id, title, description, score, score_signals")
-    .in("status", ["queued", "suppressed", "maybe"]);
-  if (error) throw new Error(error.message);
-
-  const videos = rows ?? [];
   const { map, errors } = await classifyVideos(
     videos.map((v) => ({
       id: v.id,
@@ -40,7 +77,7 @@ export async function reclassifyBacklog(): Promise<ReclassifySummary> {
   );
 
   let keptCount = 0;
-  for (const v of videos) {
+  await runPool(videos, 12, async (v) => {
     const c = map.get(v.id);
     const keep = c ? c.keep : true;
     if (keep) keptCount++;
@@ -55,8 +92,9 @@ export async function reclassifyBacklog(): Promise<ReclassifySummary> {
       score_signals: signals as unknown as VideoUpdate["score_signals"],
     };
     await supabase.from("videos").update(update).eq("id", v.id);
-  }
+  });
 
+  // Rebuild the queue: highest-scoring kept videos up to the cap.
   const { data: keepers } = await supabase
     .from("videos")
     .select("id")

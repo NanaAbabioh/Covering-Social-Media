@@ -60,6 +60,8 @@ SKIP (keep = false) — EVERYTHING ELSE, including things that look related. Be 
 Decision rules:
 - Judge by INTENT and SUBJECT, not keywords — "prayer" and "children" appear in both kept and skipped videos.
 - The subject must be the ACT of praying for one's children. "How to raise godly kids", "bedtime routine", "teaching my toddler to pray", "Christian motherhood", "family devotional" are all SKIP even though they're Christian and about kids.
+- KEEP requires real teaching substance — a preacher/teacher EXPLAINING why and how to intercede for your children (exposition, a message, a sermon, a reflective testimony). It is NOT enough that a video is about praying for kids.
+- A video that simply DELIVERS or LEADS a prayer is spoken_prayer (SKIP), even if the title sounds like teaching. Treat these title patterns as spoken_prayer: "Pray this…", "Say this prayer…", "A Powerful Prayer for/over…", "Prayer for my child", "Declare this over your children", and clickbait/urgency styling (🚨, ⚠️, 🙏, ALL-CAPS commands like "PRAY THIS TONIGHT", "REBUKE EVERY…"). These are recite-along prayer videos, not teaching — a large subscriber count does not make them teaching.
 - If the title reads like the video itself is a prayer addressed to God ("Lord, protect my children"), it is spoken_prayer.
 - When genuinely unsure, SKIP. Precision matters far more than recall — a wrongly-kept video wastes review time.
 
@@ -98,14 +100,21 @@ async function classifyBatch(
   model: string,
   batch: ClassifyInput[]
 ): Promise<Map<string, Classification>> {
+  // Strip lone surrogates (slicing text mid-emoji produces invalid UTF-16 that
+  // the API rejects as malformed JSON) and collapse whitespace.
+  const clean = (s: string) =>
+    (typeof (s as unknown as { toWellFormed?: () => string }).toWellFormed ===
+    "function"
+      ? (s as unknown as { toWellFormed: () => string }).toWellFormed()
+      : s.replace(/[\uD800-\uDFFF]/g, "")
+    ).replace(/\s+/g, " ");
+
   const userText = batch
     .map(
       (v, i) =>
-        `${i + 1}. id=${v.id}\nTitle: ${v.title}\nDescription: ${(
-          v.description ?? ""
-        )
-          .slice(0, 400)
-          .replace(/\s+/g, " ")}`
+        `${i + 1}. id=${v.id}\nTitle: ${clean(v.title ?? "")}\nDescription: ${clean(
+          (v.description ?? "").slice(0, 400)
+        )}`
     )
     .join("\n\n");
 
