@@ -162,16 +162,18 @@ alter table public.app_settings   enable row level security;
 -- Seed data
 -- -----------------------------------------------------------------------------
 insert into public.search_queries (query_text) values
-  ('praying over your children'),
-  ('teaching kids to pray'),
-  ('family devotional'),
-  ('raising godly kids'),
-  ('prayer for my child'),
-  ('Christian parenting prayer'),
-  ('praying scripture over kids'),
-  ('bedtime prayer routine kids'),
-  ('how to pray with your children'),
-  ('Christian motherhood prayer')
+  ('praying for your children sermon'),
+  ('importance of praying for your children'),
+  ('praying over your children sermon'),
+  ('interceding for your children in prayer'),
+  ('covering your children in prayer'),
+  ('why parents must pray for their children'),
+  ('prophetic prayer over your children'),
+  ('the power of a praying parent'),
+  ('praying for your children''s salvation'),
+  ('Priscilla Shirer praying for your children'),
+  ('Tony Evans praying for your children'),
+  ('Stormie Omartian praying for your children')
 on conflict (query_text) do nothing;
 
 insert into public.app_settings (id, config) values (
@@ -180,9 +182,10 @@ insert into public.app_settings (id, config) values (
     'queue_cap', 15,
     'lookback_days', 30,
     'weights', jsonb_build_object(
-      'cadence',      25,
-      'longevity',    15,
-      'engagement',   20,
+      'authority',    25,
+      'cadence',      10,
+      'longevity',    10,
+      'engagement',   15,
       'website',      15,
       'description',  10,
       'relevance',    15

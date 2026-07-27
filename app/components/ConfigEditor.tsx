@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { AppConfig } from "@/lib/settings";
 
 const WEIGHT_LABELS: Record<keyof AppConfig["weights"], string> = {
+  authority: "Ministry reach (subs)",
   cadence: "Upload cadence",
   longevity: "Channel longevity",
   engagement: "Engagement",

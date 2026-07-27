@@ -2,6 +2,7 @@ import "server-only";
 import { supabase } from "./supabase";
 
 export type ScoringWeights = {
+  authority: number;
   cadence: number;
   longevity: number;
   engagement: number;
@@ -29,9 +30,10 @@ export const DEFAULT_CONFIG: AppConfig = {
   lookback_days: 30,
   classifier_model: "claude-haiku-4-5",
   weights: {
-    cadence: 25,
-    longevity: 15,
-    engagement: 20,
+    authority: 25,
+    cadence: 10,
+    longevity: 10,
+    engagement: 15,
     website: 15,
     description: 10,
     relevance: 15,

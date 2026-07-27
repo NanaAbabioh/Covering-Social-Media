@@ -41,28 +41,29 @@ export type Classification = {
 
 export const DEFAULT_CLASSIFIER_MODEL = "claude-haiku-4-5";
 
-const SYSTEM_PROMPT = `You classify YouTube videos for a Christian-parenting content pipeline.
+const SYSTEM_PROMPT = `You classify YouTube videos for a very specific Christian content pipeline.
 
-The goal is to surface videos where a PERSON (pastor, ministry leader, or parent) is TALKING ABOUT the importance of praying for their children — teaching it, preaching it, or sharing personal experience. We do NOT want videos that ARE a prayer or worship performance.
+We are looking for ONE narrow thing: a sermon, preaching, or Bible teaching about the IMPORTANCE OF PRAYING FOR YOUR CHILDREN — a pastor/minister/believer teaching WHY and how parents should intercede for their kids (covering them in prayer, praying for their protection, salvation, faith, and future). Established ministers preaching this message are the ideal.
 
-Label each video with one "type" and whether to keep it:
+KEEP (keep = true) — ONLY if the video's central subject is a parent/believer PRAYING FOR their children, delivered as teaching/testimony:
+- "teaching": a sermon, message, or Bible teaching on the importance of praying for / interceding for / covering your children in prayer.
+- "testimony": someone recounting how praying for their children mattered — a real story, taught reflectively.
+- "interview": an interview or podcast whose focus is praying for one's children.
 
-KEEP (keep = true):
-- "teaching": a pastor/leader teaching or preaching on praying for your children, raising godly kids, family devotion, etc.
-- "testimony": someone sharing personal life experience — e.g. struggling with their children and how prayer played a role.
-- "interview": an interview, podcast, or conversation discussing praying for children.
-- "howto": practical guidance/advice for parents on building a habit of praying for their kids (spoken teaching, not a recited prayer).
+SKIP (keep = false) — EVERYTHING ELSE, including things that look related. Be strict:
+- "other": general Christian parenting or raising godly kids; discipline/behavior advice; bedtime or prayer ROUTINES; motherhood/fatherhood reflections; family devotionals; teaching CHILDREN how to pray (kids praying) or praying WITH kids as an activity; marriage/family content; anything not squarely about a parent interceding in prayer FOR their children; anything not Christian or off-topic.
+- "spoken_prayer": the video IS a recited/spoken prayer (e.g. "A Powerful Prayer For My Children", "Prayer for a Strong Relationship Between Parents and Children"). The creator is praying, not teaching about it.
+- "worship_music": worship/music, sung or instrumental, including prayer set to music.
+- "ai_god_message": AI-generated "God says / God message / My child, your prayer is answered" videos.
+- "scripture_reading": plain scripture/verse reading with no teaching.
 
-SKIP (keep = false):
-- "spoken_prayer": the video IS a recited/spoken prayer (e.g. "A Powerful Prayer For My Children", "Prayer for a Strong Relationship Between Parents and Children"). The creator is praying, not teaching about prayer.
-- "worship_music": worship/music videos, sung or instrumental, including prayer set to music.
-- "ai_god_message": AI-generated "God says / God message / My child, your prayer is answered" style videos.
-- "scripture_reading": plain scripture reading or verse compilations with no teaching.
-- "other": off-topic, not Christian, not about parenting/children, or otherwise irrelevant.
+Decision rules:
+- Judge by INTENT and SUBJECT, not keywords — "prayer" and "children" appear in both kept and skipped videos.
+- The subject must be the ACT of praying for one's children. "How to raise godly kids", "bedtime routine", "teaching my toddler to pray", "Christian motherhood", "family devotional" are all SKIP even though they're Christian and about kids.
+- If the title reads like the video itself is a prayer addressed to God ("Lord, protect my children"), it is spoken_prayer.
+- When genuinely unsure, SKIP. Precision matters far more than recall — a wrongly-kept video wastes review time.
 
-Judge by INTENT, not keywords — "prayer" and "children" appear in both kept and skipped videos. If a title reads like the video is itself a prayer addressed to God ("Lord, protect my children"), it is spoken_prayer, not teaching. When genuinely unsure between a teaching and a spoken_prayer, prefer the skip label — precision matters more than recall here.
-
-Return ONLY a JSON object, with no prose and no markdown code fences, of the exact shape:
+Return ONLY a JSON object, no prose and no markdown code fences, of the exact shape:
 {"results":[{"id":"<video id>","keep":true|false,"type":"<one of the types above>","reason":"<short reason>"}]}
 Include exactly one result object per input video, preserving the given id.`;
 

@@ -155,6 +155,30 @@ export function scoreVideo(input: {
     ? daysBetween(now, channelPublishedAt)
     : null;
 
+  // --- 0. Ministry reach (subscribers) --------------------------------------
+  // Bias hard toward established ministers over random small/one-off channels.
+  {
+    const subs = channel ? Number(channel.statistics.subscriberCount ?? 0) : 0;
+    let strength: number;
+    if (subs >= 500_000) strength = 1;
+    else if (subs >= 100_000) strength = 0.85;
+    else if (subs >= 50_000) strength = 0.7;
+    else if (subs >= 10_000) strength = 0.5;
+    else if (subs >= 1_000) strength = 0.3;
+    else strength = 0.15;
+    breakdown.push({
+      key: "authority",
+      label: "Ministry reach",
+      strength,
+      max: w.authority,
+      points: strength * w.authority,
+      note:
+        subs > 0
+          ? `${subs.toLocaleString()} subscribers.`
+          : "Subscriber count hidden or very small.",
+    });
+  }
+
   // --- 1. Upload cadence -----------------------------------------------------
   let uploadsPerWeek: number | null = null;
   {
