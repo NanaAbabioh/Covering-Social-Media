@@ -17,6 +17,10 @@ export async function PATCH(req: NextRequest) {
       typeof body.lookback_days === "number"
         ? body.lookback_days
         : current.lookback_days,
+    classifier_model:
+      typeof body.classifier_model === "string" && body.classifier_model.trim()
+        ? body.classifier_model.trim()
+        : current.classifier_model,
     weights: { ...current.weights, ...(body.weights ?? {}) },
     thresholds: { ...current.thresholds, ...(body.thresholds ?? {}) },
   };

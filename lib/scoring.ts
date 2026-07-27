@@ -20,6 +20,10 @@ export type ScoreSignals = {
   total: number;
   breakdown: SignalBreakdown[];
   red_flags: string[];
+  // Added by the pipeline after AI content-type classification:
+  content_type?: string;
+  classifier_reason?: string;
+  keep?: boolean;
 };
 
 export type ScoreResult = {

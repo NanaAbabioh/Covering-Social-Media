@@ -19,6 +19,7 @@ export type ScoringThresholds = {
 export type AppConfig = {
   queue_cap: number;
   lookback_days: number;
+  classifier_model: string;
   weights: ScoringWeights;
   thresholds: ScoringThresholds;
 };
@@ -26,6 +27,7 @@ export type AppConfig = {
 export const DEFAULT_CONFIG: AppConfig = {
   queue_cap: 15,
   lookback_days: 30,
+  classifier_model: "claude-haiku-4-5",
   weights: {
     cadence: 25,
     longevity: 15,
@@ -55,6 +57,7 @@ export async function getConfig(): Promise<AppConfig> {
   return {
     ...DEFAULT_CONFIG,
     ...cfg,
+    classifier_model: cfg.classifier_model || DEFAULT_CONFIG.classifier_model,
     weights: { ...DEFAULT_CONFIG.weights, ...(cfg.weights ?? {}) },
     thresholds: { ...DEFAULT_CONFIG.thresholds, ...(cfg.thresholds ?? {}) },
   };

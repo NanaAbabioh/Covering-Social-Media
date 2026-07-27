@@ -18,7 +18,7 @@ export default function RunDiscoveryButton() {
         const p = res.result.pipeline;
         setIsError(false);
         setMsg(
-          `Ran ${res.result.queriesRun} queries → ${p.newIds} new, ${p.queued} queued, ${p.suppressed} suppressed.` +
+          `Ran ${res.result.queriesRun} queries → ${p.newIds} new, ${p.queued} queued, ${p.skippedByType} skipped as wrong type, ${p.suppressed} suppressed.` +
             (res.result.perQueryErrors.length
               ? ` (${res.result.perQueryErrors.length} query errors)`
               : "")

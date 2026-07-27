@@ -3,6 +3,7 @@ import { supabase } from "./supabase";
 import { getVideos, getChannels, channelUrl } from "./youtube";
 import { scoreVideo } from "./scoring";
 import { getConfig } from "./settings";
+import { classifyVideos, KEEP_TYPES } from "./classify";
 import type { Database } from "./types";
 
 type VideoInsert = Database["public"]["Tables"]["videos"]["Insert"];
@@ -36,6 +37,7 @@ export type PipelineSummary = {
   inserted: number;
   queued: number;
   suppressed: number;
+  skippedByType: number;
   errors: string[];
 };
 
@@ -56,6 +58,7 @@ export async function processVideoIds(
     inserted: 0,
     queued: 0,
     suppressed: 0,
+    skippedByType: 0,
     errors,
   };
 
@@ -71,15 +74,30 @@ export async function processVideoIds(
   const channels = await getChannels(channelIds);
   const channelById = new Map(channels.map((c) => [c.id, c]));
 
+  // Classify content TYPE (teaching/testimony vs spoken-prayer/worship/AI).
+  // Videos that aren't the kind we want never reach the review queue.
+  const { map: classifications, errors: classifyErrors } = await classifyVideos(
+    videos.map((v) => ({
+      id: v.id,
+      title: v.snippet.title,
+      description: v.snippet.description,
+    })),
+    config.classifier_model
+  );
+  for (const e of classifyErrors) errors.push(`classify: ${e}`);
+
   // Score every video and build channel upsert payloads (stats only — never
   // touch status/rss_monitored so approved channels aren't downgraded).
   const channelPayloads = new Map<string, ChannelInsert>();
-  const scored: { row: VideoInsert; score: number }[] = [];
+  const scored: { row: VideoInsert; score: number; keep: boolean }[] = [];
 
   const now = new Date();
   for (const v of videos) {
     const channel = channelById.get(v.snippet.channelId);
     const result = scoreVideo({ video: v, channel, config, now });
+    const classification = classifications.get(v.id);
+    const keep = classification ? classification.keep : true;
+    if (!keep) summary.skippedByType++;
 
     if (channel) {
       channelPayloads.set(channel.id, {
@@ -98,8 +116,16 @@ export async function processVideoIds(
       });
     }
 
+    const signalsWithType = {
+      ...result.signals,
+      content_type: classification?.type ?? "teaching",
+      classifier_reason: classification?.reason ?? "",
+      keep,
+    };
+
     scored.push({
       score: result.score,
+      keep,
       row: {
         id: v.id,
         channel_id: v.snippet.channelId,
@@ -113,7 +139,7 @@ export async function processVideoIds(
           : null,
         discovery_source: source,
         score: result.score,
-        score_signals: result.signals as unknown as Database["public"]["Tables"]["videos"]["Insert"]["score_signals"],
+        score_signals: signalsWithType as unknown as Database["public"]["Tables"]["videos"]["Insert"]["score_signals"],
         status: "suppressed", // overwritten below for queued winners
       },
     });
@@ -127,18 +153,19 @@ export async function processVideoIds(
     if (error) errors.push(`channel upsert: ${error.message}`);
   }
 
-  // Queue cap: fill remaining review-queue slots with the highest scorers.
+  // Queue cap: fill remaining review-queue slots with the highest-scoring
+  // KEPT videos only. Skip-type videos stay suppressed regardless of score.
   const { count: queuedCount } = await supabase
     .from("videos")
     .select("id", { count: "exact", head: true })
     .eq("status", "queued");
   const slots = Math.max(0, config.queue_cap - (queuedCount ?? 0));
 
-  scored.sort((a, b) => b.score - a.score);
-  scored.forEach((item, i) => {
+  const keepers = scored.filter((s) => s.keep).sort((a, b) => b.score - a.score);
+  keepers.forEach((item, i) => {
     item.row.status = i < slots ? "queued" : "suppressed";
   });
-  summary.queued = Math.min(slots, scored.length);
+  summary.queued = keepers.filter((k) => k.row.status === "queued").length;
   summary.suppressed = scored.length - summary.queued;
 
   // Insert videos (ignore any that raced in).

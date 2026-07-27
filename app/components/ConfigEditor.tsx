@@ -65,6 +65,26 @@ export default function ConfigEditor({ config }: { config: AppConfig }) {
             className="rounded border border-slate-300 px-2 py-1"
           />
         </label>
+        <label className="flex flex-col text-sm sm:col-span-2">
+          <span className="text-xs text-slate-500">
+            AI classifier model (teaching/testimony vs. spoken-prayer/worship)
+          </span>
+          <select
+            value={cfg.classifier_model}
+            onChange={(e) => setCfg({ ...cfg, classifier_model: e.target.value })}
+            className="rounded border border-slate-300 px-2 py-1"
+          >
+            <option value="claude-haiku-4-5">
+              Claude Haiku 4.5 — fast &amp; cheap (default)
+            </option>
+            <option value="claude-sonnet-5">
+              Claude Sonnet 5 — more accurate, higher cost
+            </option>
+            <option value="claude-opus-5">
+              Claude Opus 5 — most accurate, highest cost
+            </option>
+          </select>
+        </label>
       </div>
 
       <div>

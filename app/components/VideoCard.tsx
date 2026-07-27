@@ -37,6 +37,11 @@ export default function VideoCard({ video }: { video: VideoWithChannel }) {
 
       {/* Right: title, channel, score, actions */}
       <div className="flex min-w-0 flex-col">
+        {signals?.content_type && (
+          <span className="mb-1 inline-block w-fit rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium capitalize text-emerald-700">
+            {signals.content_type.replace(/_/g, " ")}
+          </span>
+        )}
         <div className="flex items-start justify-between gap-3">
           <h2 className="text-base font-semibold leading-snug text-slate-900">
             {video.title}
