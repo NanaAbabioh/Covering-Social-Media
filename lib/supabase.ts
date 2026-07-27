@@ -25,6 +25,13 @@ function getClient(): SupabaseClient<Database> {
 
   _client = createClient<Database>(url, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
+    global: {
+      // Next.js caches fetch() results in its Data Cache by default, which makes
+      // Supabase reads return stale rows even on force-dynamic pages. Force every
+      // Supabase request to bypass that cache so the UI always reflects the DB.
+      fetch: (input, init) =>
+        fetch(input, { ...init, cache: "no-store" }),
+    },
   });
   return _client;
 }
