@@ -3,6 +3,7 @@ import { getConfig } from "@/lib/settings";
 import QueryManager from "../components/QueryManager";
 import ConfigEditor from "../components/ConfigEditor";
 import RunDiscoveryButton from "../components/RunDiscoveryButton";
+import ReclassifyButton from "../components/ReclassifyButton";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +30,14 @@ export default async function SettingsPage() {
           Manually run the YouTube search pipeline now (also runs daily via cron).
         </p>
         <RunDiscoveryButton />
+        <div className="mt-4 border-t border-slate-100 pt-4">
+          <p className="mb-3 text-sm text-slate-500">
+            Re-run the AI content-type classifier over everything not yet approved or
+            rejected, and rebuild the queue from teaching/testimony videos only. Use
+            this after changing the classifier model, or to clean up an existing backlog.
+          </p>
+          <ReclassifyButton />
+        </div>
       </section>
 
       <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
