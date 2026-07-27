@@ -3,7 +3,7 @@ import { supabase } from "./supabase";
 import { getVideos, getChannels, channelUrl } from "./youtube";
 import { scoreVideo } from "./scoring";
 import { getConfig } from "./settings";
-import { classifyVideos, KEEP_TYPES } from "./classify";
+import { classifyVideos } from "./classify";
 import type { Database } from "./types";
 
 type VideoInsert = Database["public"]["Tables"]["videos"]["Insert"];
@@ -13,43 +13,6 @@ function chunk<T>(arr: T[], size: number): T[][] {
   const out: T[][] = [];
   for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
   return out;
-}
-
-/**
- * Top the review queue back up to the configured cap after a video leaves it
- * (rejected/approved/maybe). Promotes the highest-scoring SUPPRESSED videos
- * that the classifier kept (or that predate classification) into the queue.
- */
-export async function backfillQueue(): Promise<number> {
-  const config = await getConfig();
-
-  const { count: queuedCount } = await supabase
-    .from("videos")
-    .select("id", { count: "exact", head: true })
-    .eq("status", "queued");
-
-  const slots = Math.max(0, config.queue_cap - (queuedCount ?? 0));
-  if (slots === 0) return 0;
-
-  // Eligible = suppressed AND not explicitly classified as skip (keep != false).
-  // Includes rows predating classification (keep is null).
-  const { data: candidates, error } = await supabase
-    .from("videos")
-    .select("id")
-    .eq("status", "suppressed")
-    .or("score_signals->>keep.is.null,score_signals->>keep.eq.true")
-    .order("score", { ascending: false })
-    .limit(slots);
-
-  if (error || !candidates || candidates.length === 0) return 0;
-
-  const ids = candidates.map((c) => c.id);
-  const { error: upErr } = await supabase
-    .from("videos")
-    .update({ status: "queued" })
-    .in("id", ids);
-  if (upErr) return 0;
-  return ids.length;
 }
 
 /** Return only the IDs not already present in the videos table. */
