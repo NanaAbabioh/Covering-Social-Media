@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { backfillQueue } from "@/lib/pipeline";
 import type { Database } from "@/lib/types";
 
 type VideoUpdate = Database["public"]["Tables"]["videos"]["Update"];
@@ -58,5 +59,11 @@ export async function PATCH(
     }
   }
 
-  return NextResponse.json({ ok: true });
+  // A video leaving the queue frees a slot — top the queue back up to the cap.
+  let backfilled = 0;
+  if (status !== "queued") {
+    backfilled = await backfillQueue();
+  }
+
+  return NextResponse.json({ ok: true, backfilled });
 }

@@ -1,3 +1,5 @@
+"use client";
+
 import type { Channel, Video } from "@/lib/types";
 import type { ScoreSignals } from "@/lib/scoring";
 import { formatDuration, formatNumber, timeAgo } from "@/lib/format";
@@ -6,7 +8,13 @@ import ReviewActions from "./ReviewActions";
 
 export type VideoWithChannel = Video & { channels: Channel | null };
 
-export default function VideoCard({ video }: { video: VideoWithChannel }) {
+export default function VideoCard({
+  video,
+  onResolved,
+}: {
+  video: VideoWithChannel;
+  onResolved?: () => void;
+}) {
   const channel = video.channels;
   const signals = video.score_signals as unknown as ScoreSignals | null;
 
@@ -97,7 +105,7 @@ export default function VideoCard({ video }: { video: VideoWithChannel }) {
         </div>
 
         <div className="mt-auto pt-4">
-          <ReviewActions videoId={video.id} />
+          <ReviewActions videoId={video.id} onResolved={onResolved} />
         </div>
       </div>
     </article>

@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import { getConfig } from "@/lib/settings";
-import VideoCard, { type VideoWithChannel } from "./components/VideoCard";
+import { type VideoWithChannel } from "./components/VideoCard";
+import QueueList from "./components/QueueList";
 
 export const dynamic = "force-dynamic";
 
@@ -48,11 +49,7 @@ export default async function ReviewQueuePage() {
         </div>
       )}
 
-      <div className="space-y-4">
-        {videos.map((v) => (
-          <VideoCard key={v.id} video={v} />
-        ))}
-      </div>
+      {!error && videos.length > 0 && <QueueList videos={videos} />}
     </div>
   );
 }

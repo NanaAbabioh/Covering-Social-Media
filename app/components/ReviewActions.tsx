@@ -7,7 +7,13 @@ import { useRouter } from "next/navigation";
  * Approve / Maybe / Reject buttons for a queued video. Approve opens a small
  * modal to capture the clip timestamp + why it's powerful (feeds outreach later).
  */
-export default function ReviewActions({ videoId }: { videoId: string }) {
+export default function ReviewActions({
+  videoId,
+  onResolved,
+}: {
+  videoId: string;
+  onResolved?: () => void;
+}) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [showApprove, setShowApprove] = useState(false);
@@ -32,6 +38,9 @@ export default function ReviewActions({ videoId }: { videoId: string }) {
         throw new Error(j.error ?? `Request failed (${res.status})`);
       }
       setShowApprove(false);
+      // Optimistically remove this card from the queue immediately, then
+      // reconcile with the server (which may have backfilled a new candidate).
+      onResolved?.();
       router.refresh();
     } catch (e) {
       setError((e as Error).message);
